@@ -8,17 +8,22 @@ __all__ = ["Segment", "Document"]
 class Segment:
     start: int
     end: int
+    document_name: str
 
     def __eq__(self, other):
         return (
             isinstance(other, Segment)
             and self.start == other.start
             and self.end == other.end
+            and self.document_name == other.document_name
         )
 
 
 class Document:
-    def __init__(self, lines: Sequence[str], segments: Sequence[Segment]):
+    def __init__(
+        self, document_name: str, lines: Sequence[str], segments: Sequence[Segment]
+    ):
+        self.document_name = document_name
         self._lines = lines
         self._segments = segments
 

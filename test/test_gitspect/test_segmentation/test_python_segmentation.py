@@ -23,8 +23,13 @@ class TestPythonSegmenter(unittest.TestCase):
 
     def test_module_segment(self):
         source_lines = inspect.getsourcelines(python_segmentation)
-        expected = Segment(source_lines[1], source_lines[1] + len(source_lines[0]) - 1)
+        expected = Segment(
+            start=source_lines[1],
+            end=source_lines[1] + len(source_lines[0]) - 1,
+            document_name=python_segmentation.__file__,
+        )
         self.assertIn(expected, self.document.segments())
+        self.assertEqual(python_segmentation.__file__, self.document.document_name)
 
     def test_class_segments(self):
         for x in inspect.getmembers(
@@ -34,7 +39,9 @@ class TestPythonSegmenter(unittest.TestCase):
         ):
             source_lines = inspect.getsourcelines(x[1])
             expected = Segment(
-                source_lines[1] - 1, source_lines[1] + len(source_lines[0]) - 1
+                start=source_lines[1] - 1,
+                end=source_lines[1] + len(source_lines[0]) - 1,
+                document_name=python_segmentation.__file__,
             )
             self.assertIn(expected, self.document.segments())
 
@@ -46,7 +53,9 @@ class TestPythonSegmenter(unittest.TestCase):
         ):
             source_lines = inspect.getsourcelines(x[1])
             expected = Segment(
-                source_lines[1] - 1, source_lines[1] + len(source_lines[0]) - 1
+                start=source_lines[1] - 1,
+                end=source_lines[1] + len(source_lines[0]) - 1,
+                document_name=python_segmentation.__file__,
             )
             self.assertIn(expected, self.document.segments())
 
@@ -58,7 +67,9 @@ class TestPythonSegmenter(unittest.TestCase):
         ):
             source_lines = inspect.getsourcelines(x[1])
             expected = Segment(
-                source_lines[1] - 1, source_lines[1] + len(source_lines[0]) - 1
+                start=source_lines[1] - 1,
+                end=source_lines[1] + len(source_lines[0]) - 1,
+                document_name=python_segmentation.__file__,
             )
             self.assertIn(expected, self.document.segments())
         print(self.document.segments())
