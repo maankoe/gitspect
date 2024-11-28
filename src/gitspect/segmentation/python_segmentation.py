@@ -1,40 +1,14 @@
 from collections.abc import Sequence, Iterable
-from dataclasses import dataclass
 from pathlib import Path
 import logging
 from ._utils import LineIndent, indent_len
+from gitspect.model import Document, Segment
 
-__all__ = ["Segment", "Document", "PythonSegmenter"]
+__all__ = ["PythonSegmenter"]
 
 
 logging.basicConfig(encoding="utf-8", level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class Segment:
-    start: int
-    end: int
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Segment)
-            and self.start == other.start
-            and self.end == other.end
-        )
-
-
-class Document:
-    def __init__(self, lines: Sequence[str], segments: Sequence[Segment]):
-        self._lines = lines
-        self._segments = segments
-
-    def segments(self) -> Sequence[Segment]:
-        return self._segments
-
-    def __iter__(self):
-        for s in self._segments:
-            yield self._lines[s.start : s.end]
 
 
 class PythonSegmenter:
@@ -67,40 +41,34 @@ class PythonSegmenter:
                 indents.append(LineIndent(li, line_indent))
             else:
                 while line_indent < indents[-1].indent:
-                    start = indents.pop()
-                    if _valid_segment_start(lines[start.li - 1]):
-                        segments.append(
-                            Segment(
-                                _line_lookback(lines, start.li - 1), non_empty_li + 1
-                            )
-                        )
-                        logger.debug("Creating segment: %s", segments[-1])
-                    else:
-                        logger.debug(
-                            "Skipping segment starting with: '%s'", lines[start.li - 1]
-                        )
+                    segment = _lookback(lines, indents.pop(), non_empty_li)
+                    if segment:
+                        logger.debug("Creating segment: %s", segment)
+                        segments.append(segment)
             non_empty_li = li
 
         while indents:
-            start = indents.pop()
-            if _valid_segment_start(lines[start.li - 1]):
-                segments.append(
-                    Segment(_line_lookback(lines, start.li - 1), non_empty_li + 1)
-                )
-                logger.debug("Creating segment: %s", segments[-1])
-            else:
-                logger.debug(
-                    "Skipping segment starting with: '%s'", lines[start.li - 1]
-                )
+            segment = _lookback(lines, indents.pop(), non_empty_li)
+            if segment:
+                logger.debug("Creating segment: %s", segment)
+                segments.append(segment)
         segments.append(Segment(0, non_empty_li))
         return Document(lines, segments)
+
+
+def _lookback(lines, start, non_empty_li) -> Segment | None:
+    if _valid_segment_start(lines[start.li - 1]):
+        return Segment(_lookback_index(lines, start.li - 1), non_empty_li + 1)
+    else:
+        logger.debug("Skipping segment starting with: '%s'", lines[start.li - 1])
+        return None
 
 
 def _valid_segment_start(line: str) -> bool:
     return any(line.strip().startswith(x) for x in ["class", "def"])
 
 
-def _line_lookback(lines: Sequence[str], start_index: int) -> int:
+def _lookback_index(lines: Sequence[str], start_index: int) -> int:
     start_indent = indent_len(lines[start_index])
     for lookback_line in reversed(lines[:start_index]):
         if lookback_line.strip() and indent_len(lookback_line) >= start_indent:

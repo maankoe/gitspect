@@ -4,7 +4,7 @@ import inspect
 
 from gitspect.segmentation.python_segmentation import (
     PythonSegmenter,
-    _line_lookback,
+    _lookback_index,
     Segment,
 )
 from gitspect.segmentation import python_segmentation
@@ -14,17 +14,16 @@ class TestPythonSegmenter(unittest.TestCase):
     document = PythonSegmenter.from_path(Path(python_segmentation.__file__)).segment()
 
     def test_line_lookback(self):
-        self.assertEqual(_line_lookback(["  ", "b"], 1), 1)
-        self.assertEqual(_line_lookback([" \t ", "b"], 1), 1)
-        self.assertEqual(_line_lookback(["A", " \t ", "b"], 2), 2)
-        self.assertEqual(_line_lookback(["  ", " a ", "b"], 2), 1)
-        self.assertEqual(_line_lookback(["  a", "b"], 1), 0)
-        self.assertEqual(_line_lookback(["@a(", "   b", ")", "c"], 3), 0)
+        self.assertEqual(_lookback_index(["  ", "b"], 1), 1)
+        self.assertEqual(_lookback_index([" \t ", "b"], 1), 1)
+        self.assertEqual(_lookback_index(["A", " \t ", "b"], 2), 2)
+        self.assertEqual(_lookback_index(["  ", " a ", "b"], 2), 1)
+        self.assertEqual(_lookback_index(["  a", "b"], 1), 0)
+        self.assertEqual(_lookback_index(["@a(", "   b", ")", "c"], 3), 0)
 
     def test_module_segment(self):
         source_lines = inspect.getsourcelines(python_segmentation)
         expected = Segment(source_lines[1], source_lines[1] + len(source_lines[0]) - 1)
-        print(source_lines)
         self.assertIn(expected, self.document.segments())
 
     def test_class_segments(self):
