@@ -2,10 +2,10 @@ import unittest
 from pathlib import Path
 import inspect
 
+from gitspect.model import Segment
 from gitspect.segmentation.python_segmentation import (
     PythonSegmenter,
     _lookback_index,
-    Segment,
 )
 from gitspect.segmentation import python_segmentation
 
