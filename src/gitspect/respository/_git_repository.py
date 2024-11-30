@@ -59,7 +59,7 @@ class GitRepository(Repository):
                 raise ValueError(git.errors())
         return files
 
-    def read_file(self, commit_id: CommitId, file: GitRepositoryFile) -> str:
+    def read_file(self, commit_id: CommitId, file: RepositoryFile) -> str:
         cmd = ["git", "show", f"{commit_id}:{file.path}"]
         lines = []
         with RunGit(cmd) as git:

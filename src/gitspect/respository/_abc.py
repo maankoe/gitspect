@@ -38,8 +38,14 @@ class Repository(ABC):
     ) -> Iterable[Commit]:
         pass
 
+    @abstractmethod
     def commits_between(self, start: str, end: str = None) -> Iterable[Commit]:
         pass
 
-    def files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
+    @abstractmethod
+    def list_files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
+        pass
+
+    @abstractmethod
+    def read_file(self, commit_id: CommitId, file: RepositoryFile) -> str:
         pass
