@@ -1,9 +1,11 @@
+import subprocess
 import unittest
 from pathlib import Path
 
 from gitspect.respository import GitRepository, GitCommit
+from gitspect.respository._git_repository import _commit_from_oneline
 
-repo_path = Path(__file__).parents[4]
+repo_path = Path(__file__).parents[3]
 repo = GitRepository(repo_path)
 repo_commits = [
     GitCommit(repo, "15dfeb5c2949b9c77fb4264435a67ca4ac176c58", "fix import"),
@@ -25,11 +27,32 @@ repo_commits = [
 
 
 class TestGitRepository(unittest.TestCase):
-    def test_get_first_commit_by_index(self):
+    def test_error_on_not_a_repo(self):
+        with self.assertRaises(ValueError):
+            GitRepository(Path("/"))
+
+    def test_get_first_commit(self):
         self.assertEqual(
-            list(repo.commits(0, 0, reverse=True)),
+            list(repo.commits(end=0, reverse=True)),
             repo_commits[-1:],
         )
+
+    def test_get_last_commit(self):
+        last_commit_log = subprocess.run(
+            ["git", "log", "--format=oneline", "-1"], capture_output=True
+        ).stdout.decode()
+        self.assertEqual(
+            repo.commits(end=0),
+            _commit_from_oneline(repo, last_commit_log),
+        )
+
+    def test_errors_on_negative_start(self):
+        with self.assertRaises(ValueError):
+            list(repo.commits(start=-1))
+
+    def test_errors_on_end_smaller_than_start(self):
+        with self.assertRaises(ValueError):
+            list(repo.commits(start=2, end=1))
 
     def test_get_commits_by_index(self):
         self.assertEqual(list(repo.commits(1, 2, reverse=True)), repo_commits[-3:-1])
@@ -43,3 +66,7 @@ class TestGitRepository(unittest.TestCase):
             ),
             repo_commits[2:4],
         )
+
+    def test_not_a_commit(self):
+        with self.assertRaises(ValueError):
+            list(repo.commits_between("asdf", "qwer"))
