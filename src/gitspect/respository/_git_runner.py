@@ -19,7 +19,7 @@ class RunGit:
         for ci, commit_line in enumerate(self._process.stdout.readlines()):
             if self.errors():
                 raise GitError(self.errors())
-            yield ci, commit_line.decode().strip()
+            yield ci, commit_line.decode()
 
     def errors(self) -> str:
         self._errors.extend(

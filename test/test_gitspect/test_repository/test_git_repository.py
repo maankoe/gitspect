@@ -74,7 +74,7 @@ class TestGitRepository(unittest.TestCase):
 
     def test_commit_files(self):
         self.assertEqual(
-            list(repo.files("91d8fbb78b5b93dd60cd11306bc8af4023665c39")),
+            list(repo.list_files("91d8fbb78b5b93dd60cd11306bc8af4023665c39")),
             [
                 GitRepositoryFile(repo, Path(x))
                 for x in [
@@ -85,6 +85,46 @@ class TestGitRepository(unittest.TestCase):
             ],
         )
 
+    def test_read_file(self):
+        commit_id = "91d8fbb78b5b93dd60cd11306bc8af4023665c39"
+        file_path = "src/gitspect/model/_document.py"
+        file_text = (
+            subprocess.run(
+                [
+                    "git",
+                    "show",
+                    f"{commit_id}:{file_path}",
+                ],
+                capture_output=True,
+            )
+            .stdout.decode()
+            .strip()
+        )
+        self.assertEqual(
+            repo.read_file(commit_id, GitRepositoryFile(repo, Path(file_path))),
+            file_text,
+        )
+
+    def test_read_file_bad_commit(self):
+        with self.assertRaises(ValueError):
+            repo.read_file(
+                "asdf", GitRepositoryFile(repo, Path("src/gitspect/model/_document.py"))
+            )
+
+    def test_read_file_bad_path(self):
+        with self.assertRaises(ValueError):
+            repo.read_file(
+                "91d8fbb78b5b93dd60cd11306bc8af4023665c39",
+                GitRepositoryFile(repo, Path("qwer")),
+            )
+
+    def test_read_file_path_not_in_commit(self):
+        with self.assertRaises(ValueError):
+            repo.read_file(
+                "91d8fbb78b5b93dd60cd11306bc8af4023665c39",
+                GitRepositoryFile(repo, Path("src/gitspect/repository/_abc.py")),
+            )
+
     def test_commit_files_invalid_commit(self):
         with self.assertRaises(ValueError):
-            list(repo.files("asdf"))
+            list(repo.list_files("asdf"))

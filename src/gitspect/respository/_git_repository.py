@@ -49,15 +49,25 @@ class GitRepository(Repository):
             if git.errors():
                 raise ValueError(git.errors())
 
-    def files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
+    def list_files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
         cmd = ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", commit_id]
         files = []
         with RunGit(cmd) as git:
             for ci, line in git.iter_lines():
-                files.append(GitRepositoryFile(self, Path(line)))
+                files.append(GitRepositoryFile(self, Path(line.rstrip())))
             if git.errors():
                 raise ValueError(git.errors())
         return files
+
+    def read_file(self, commit_id: CommitId, file: GitRepositoryFile) -> str:
+        cmd = ["git", "show", f"{commit_id}:{file.path}"]
+        lines = []
+        with RunGit(cmd) as git:
+            for ci, line in git.iter_lines():
+                lines.append(line.rstrip())
+            if git.errors():
+                raise ValueError(git.errors())
+        return "\n".join(lines)
 
 
 def _commit_from_oneline(repo: "GitRepository", line: str) -> Commit:
