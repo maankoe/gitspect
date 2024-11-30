@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from gitspect.respository import GitRepository, GitCommit
+from gitspect.respository._git_file import GitRepositoryFile
 from gitspect.respository._git_repository import _commit_from_oneline
 
 repo_path = Path(__file__).parents[3]
@@ -70,3 +71,20 @@ class TestGitRepository(unittest.TestCase):
     def test_not_a_commit(self):
         with self.assertRaises(ValueError):
             list(repo.commits_between("asdf", "qwer"))
+
+    def test_commit_files(self):
+        self.assertEqual(
+            list(repo.files("91d8fbb78b5b93dd60cd11306bc8af4023665c39")),
+            [
+                GitRepositoryFile(repo, Path(x))
+                for x in [
+                    "src/gitspect/model/_document.py",
+                    "src/gitspect/segmentation/python_segmentation.py",
+                    "test/test_gitspect/test_segmentation/test_python_segmentation.py",
+                ]
+            ],
+        )
+
+    def test_commit_files_invalid_commit(self):
+        with self.assertRaises(ValueError):
+            list(repo.files("asdf"))

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
 
-__all__ = ["CommitId", "Commit", "Repository"]
+__all__ = ["CommitId", "Commit", "RepositoryFile", "Repository"]
 
 CommitId = str
 
@@ -19,6 +19,13 @@ class Commit(ABC):
         pass
 
 
+class RepositoryFile(ABC):
+    @property
+    @abstractmethod
+    def path(self) -> Path:
+        pass
+
+
 class Repository(ABC):
     @property
     @abstractmethod
@@ -32,4 +39,7 @@ class Repository(ABC):
         pass
 
     def commits_between(self, start: str, end: str = None) -> Iterable[Commit]:
+        pass
+
+    def files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
         pass
