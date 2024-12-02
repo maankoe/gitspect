@@ -26,6 +26,18 @@ class RepositoryFile(ABC):
         pass
 
 
+class Diff(ABC):
+    @property
+    @abstractmethod
+    def before_file(self) -> RepositoryFile:
+        pass
+
+    @property
+    @abstractmethod
+    def after_file(self) -> RepositoryFile:
+        pass
+
+
 class Repository(ABC):
     @property
     @abstractmethod

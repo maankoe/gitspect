@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
-from ._abc import Commit, Repository, CommitId, RepositoryFile
+from ._abc import Commit, Repository, CommitId, RepositoryFile, Diff
 from ._git_commit import GitCommit
 from ._git_file import GitRepositoryFile
 from ._git_runner import RunGit, is_repo
