@@ -4,7 +4,7 @@ from pathlib import Path
 
 from gitspect.respository import GitRepository, GitCommit
 from gitspect.respository._git_file import GitRepositoryFile
-from gitspect.respository._git_repository import _commit_from_oneline
+from gitspect.respository._git_repository import CommitsParser, CommitParser
 
 repo_path = Path(__file__).parents[3]
 repo = GitRepository(repo_path)
@@ -40,11 +40,14 @@ class TestGitRepository(unittest.TestCase):
 
     def test_get_last_commit(self):
         last_commit_log = subprocess.run(
-            ["git", "log", "--format=oneline", "-1"], capture_output=True
+            ["git", "rev-list", "--all", "-1", "--format=%s%n%H"], capture_output=True
         ).stdout.decode()
+        builder = CommitParser(repo)
+        for ci, line in enumerate(last_commit_log.splitlines()):
+            builder.add_line(line)
         self.assertEqual(
             repo.commits(end=0),
-            _commit_from_oneline(repo, last_commit_log),
+            builder.build(),
         )
 
     def test_errors_on_negative_start(self):

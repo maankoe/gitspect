@@ -1,7 +1,8 @@
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import Callable, Tuple
 
-from ._abc import Commit, Repository, CommitId, RepositoryFile, Diff
+from ._abc import Commit, Repository, CommitId, RepositoryFile
 from ._git_commit import GitCommit
 from ._git_file import GitRepositoryFile
 from ._git_runner import RunGit, is_repo
@@ -28,24 +29,25 @@ class GitRepository(Repository):
             raise ValueError(
                 f"end must be greater than or equal to start, start={start}, end={end}"
             )
-        cmd = ["git", "log", "--format=oneline"]
+        cmd = ["git", "rev-list", "--all", "--format=%s%n%H"]
         if reverse:
             cmd.append("--reverse")
+        print(" ".join(cmd))
         end = float("inf") if end is None else end
         with RunGit(cmd) as git:
-            for ci, line in git.iter_lines():
-                if start <= ci <= end:
-                    yield _commit_from_oneline(self, line)
-                elif ci > end:
-                    break
+            yield from CommitsParser(
+                self, lambda index, builder: start <= index <= end
+            ).parse(git.iter_lines())
 
     def commits_between(
         self, start: CommitId, end: CommitId = None
     ) -> Iterable[Commit]:
-        cmd = ["git", "log", "--format=oneline", f"{start}..{end or ""}"]
+        cmd = ["git", "rev-list", "--format=%s%n%H", f"{start}..{end or ""}"]
+        print(" ".join(cmd))
         with RunGit(cmd) as git:
-            for ci, line in git.iter_lines():
-                yield _commit_from_oneline(self, line)
+            yield from CommitsParser(self, lambda index, builder: True).parse(
+                git.iter_lines()
+            )
             if git.errors():
                 raise ValueError(git.errors())
 
@@ -70,6 +72,42 @@ class GitRepository(Repository):
         return "\n".join(lines)
 
 
-def _commit_from_oneline(repo: "GitRepository", line: str) -> Commit:
-    hash_end = line.index(" ")
-    return GitCommit(repo, commit_id=line[:hash_end], message=" ".join(line[hash_end:]))
+class CommitParser:
+    def __init__(self, repo: Repository):
+        self._repo = repo
+        self._lines = []
+        self._commit_id: CommitId | None = None
+
+    def add_line(self, line: str):
+        if not self._commit_id:
+            self._commit_id = line[line.index(" ") + 1 :]
+        else:
+            self._lines.append(line)
+
+    def is_complete(self) -> bool:
+        return self._lines and self._lines[-1] == self._commit_id
+
+    def build(self) -> Commit:
+        return GitCommit(self._repo, self._commit_id, "\n".join(self._lines[:-1]))
+
+    def __str__(self):
+        return f"{self.is_complete()} :: {self._lines}"
+
+
+class CommitsParser:
+    def __init__(
+        self, repo: GitRepository, accept: Callable[[int, CommitParser], bool]
+    ):
+        self._repo = repo
+        self._accept = accept
+        self._commit_index = 0
+        self._builder = CommitParser(self._repo)
+
+    def parse(self, lines: Iterable[Tuple[int, str]]):
+        for ci, line in lines:
+            self._builder.add_line(line.strip())
+            if self._builder.is_complete():
+                if self._accept(self._commit_index, self._builder):
+                    yield self._builder.build()
+                self._builder = CommitParser(self._repo)
+                self._commit_index += 1
