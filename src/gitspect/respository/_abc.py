@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
 
-__all__ = ["CommitId", "Commit", "RepositoryFile", "Repository"]
+__all__ = ["CommitId", "BlobId", "Commit", "RepositoryFile", "Repository"]
 
 CommitId = str
+BlobId = str
 
 
 class Commit(ABC):
@@ -55,9 +56,9 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def list_files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
+    def list_diff_files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
         pass
 
     @abstractmethod
-    def read_file(self, commit_id: CommitId, file: RepositoryFile) -> str:
+    def read_blob(self, blob_id: BlobId) -> str:
         pass

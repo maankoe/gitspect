@@ -1,13 +1,15 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Callable, Tuple
 
-from ._abc import Commit, Repository, CommitId, RepositoryFile
+from ._abc import Commit, Repository, CommitId, RepositoryFile, BlobId
 from ._git_commit import GitCommit
 from ._git_file import GitRepositoryFile
 from ._git_runner import RunGit, is_repo
 
 __all__ = ["GitRepository"]
+
+_commits_format = "%s%n%H"
 
 
 class GitRepository(Repository):
@@ -29,10 +31,15 @@ class GitRepository(Repository):
             raise ValueError(
                 f"end must be greater than or equal to start, start={start}, end={end}"
             )
-        cmd = ["git", "rev-list", "--all", "--format=%s%n%H"]
+        cmd = [
+            "git",
+            *self._path_args(),
+            "rev-list",
+            "--all",
+            f"--format={_commits_format}",
+        ]
         if reverse:
             cmd.append("--reverse")
-        print(" ".join(cmd))
         end = float("inf") if end is None else end
         with RunGit(cmd) as git:
             yield from CommitsParser(
@@ -42,7 +49,13 @@ class GitRepository(Repository):
     def commits_between(
         self, start: CommitId, end: CommitId = None
     ) -> Iterable[Commit]:
-        cmd = ["git", "rev-list", "--format=%s%n%H", f"{start}..{end or ""}"]
+        cmd = [
+            "git",
+            *self._path_args(),
+            "rev-list",
+            f"--format={_commits_format}",
+            f"{start}..{end or ""}",
+        ]
         print(" ".join(cmd))
         with RunGit(cmd) as git:
             yield from CommitsParser(self, lambda index, builder: True).parse(
@@ -51,18 +64,28 @@ class GitRepository(Repository):
             if git.errors():
                 raise ValueError(git.errors())
 
-    def list_files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
-        cmd = ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", commit_id]
+    def list_diff_files(self, commit_id: CommitId) -> Iterable[RepositoryFile]:
+        cmd = [
+            "git",
+            *self._path_args(),
+            "diff-tree",
+            "--no-commit-id",
+            "-r",
+            commit_id,
+        ]
         files = []
         with RunGit(cmd) as git:
             for ci, line in git.iter_lines():
-                files.append(GitRepositoryFile(self, Path(line.rstrip())))
+                split_line = line.rstrip().split()
+                files.append(
+                    GitRepositoryFile(self, Path(split_line[5]), blob_id=split_line[3])
+                )
             if git.errors():
                 raise ValueError(git.errors())
         return files
 
-    def read_file(self, commit_id: CommitId, file: RepositoryFile) -> str:
-        cmd = ["git", "show", f"{commit_id}:{file.path}"]
+    def read_blob(self, blob_id: BlobId) -> str:
+        cmd = ["git", *self._path_args(), "cat-file", "-p", blob_id]
         lines = []
         with RunGit(cmd) as git:
             for ci, line in git.iter_lines():
@@ -70,6 +93,9 @@ class GitRepository(Repository):
             if git.errors():
                 raise ValueError(git.errors())
         return "\n".join(lines)
+
+    def _path_args(self):
+        return "-C", self._path.absolute().as_posix()
 
 
 class CommitParser:
