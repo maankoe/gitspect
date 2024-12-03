@@ -34,7 +34,7 @@ class TestGitRepository(unittest.TestCase):
 
     def test_get_first_commit(self):
         self.assertEqual(
-            list(repo.commits(end=0, reverse=True)),
+            list(repo.commits(end=1, reverse=True)),
             repo_commits[-1:],
         )
 
@@ -59,7 +59,7 @@ class TestGitRepository(unittest.TestCase):
             list(repo.commits(start=2, end=1))
 
     def test_get_commits_by_index(self):
-        self.assertEqual(list(repo.commits(1, 2, reverse=True)), repo_commits[-3:-1])
+        self.assertEqual(list(repo.commits(1, 3, reverse=True)), repo_commits[-3:-1])
 
     def test_get_commits_by_commit(self):
         self.assertEqual(

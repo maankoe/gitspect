@@ -36,7 +36,7 @@ class GitRepository(Repository):
         end = float("inf") if end is None else end
         with RunGit(cmd) as git:
             yield from CommitsParser(
-                self, lambda index, builder: start <= index <= end
+                self, lambda index, builder: start <= index < end
             ).parse(git.iter_lines())
 
     def commits_between(
